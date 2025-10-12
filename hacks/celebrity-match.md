@@ -6,9 +6,12 @@ permalink: /celebrity-match
 
 <style>
 #output {
-    padding: 10px;
+    padding: 15px;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-top: 10px;
 }
 .controls {
     margin: 10px 0;
@@ -21,6 +24,7 @@ permalink: /celebrity-match
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 200px;
 }
 label {
     font-weight: bold;
@@ -36,25 +40,21 @@ input, select {
 button {
     padding: 8px 12px;
     border-radius: 4px;
-    border: 1px solid #ccc;
+    border: none;
     background-color: #007bff;
     color: white;
-    border: none;
     cursor: pointer;
 }
 button:hover {
     background-color: #0056b3;
 }
+section {
+    margin-bottom: 20px;
+}
 </style>
 
-<details style="padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff;">
-  <summary style="cursor: pointer; font-weight: bold; color: #007bff; font-size: 18px;">How does it work?</summary>
-  <div style="margin-top: 10px;">
-    <p>Enter your info and get matched with a celebrity based on your interests!</p>
-  </div>
-</details>
-
-<div class="controls">
+<section>
+    <h2>Your Info</h2>
     <div class="control-group">
         <label for="name">Name:</label>
         <input type="text" id="name" placeholder="Enter your name">
@@ -73,41 +73,167 @@ button:hover {
             <option value="gaming">Gaming</option>
         </select>
     </div>
-</div>
+    <button id="matchBtn">Find Your Celebrity/User Match</button>
+</section>
 
-<button id="matchBtn">Find Your Celebrity Match</button>
+<section>
+    <h2>Check Compatibility with Celebrity</h2>
+    <div class="control-group">
+        <label for="celebrityInput">Celebrity Name:</label>
+        <input type="text" id="celebrityInput" placeholder="Type a celebrity name">
+    </div>
+    <button id="compatCelebrityBtn">Check Compatibility</button>
+</section>
+
+<section>
+    <h2>Check Compatibility with Previous User</h2>
+    <div class="control-group">
+        <label for="userDropdown">Select Previous User:</label>
+        <select id="userDropdown">
+            <option value="">-- Select a previous user --</option>
+        </select>
+    </div>
+    <button id="compatUserBtn">Check Compatibility</button>
+</section>
+
 <div id="output"></div>
 
 <script>
-document.getElementById("matchBtn").onclick = function() {
-    const name = document.getElementById("name").value;
-    const age = document.getElementById("age").value;
-    const interest = document.getElementById("interest").value;
-    const outputDiv = document.getElementById("output");
-    outputDiv.textContent = "⏳ Matching you with a celebrity...";
+const userDropdown = document.getElementById("userDropdown");
 
-    fetch("http://localhost:5000/api/match-celebrity", {
+// --- Populate previous users dropdown dynamically ---
+function populateUserDropdown() {
+    fetch("http://localhost:5000/api/previous-users")
+        .then(resp => resp.json())
+        .then(res => {
+            if (!res.success) return;
+            userDropdown.innerHTML = '<option value="">-- Select a previous user --</option>';
+            res.users.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.name;
+                opt.textContent = `${u.name} (${u.age} yrs, ${u.interest})`;
+                userDropdown.appendChild(opt);
+            });
+        })
+        .catch(e => console.log("Error loading previous users:", e));
+}
+
+// Initial load
+populateUserDropdown();
+
+// --- Find best celebrity and user match ---
+document.getElementById("matchBtn").onclick = function() {
+    const name = document.getElementById("name").value.trim();
+    const age = document.getElementById("age").value;
+    const interest = document.getElementById("interest").value.trim();
+    const outputDiv = document.getElementById("output");
+
+    if (!name || !age || !interest) {
+        outputDiv.textContent = "⚠️ Please enter name, age, and interest.";
+        return;
+    }
+
+    outputDiv.textContent = "⏳ Finding your best celebrity and previous user match...";
+
+    fetch("http://localhost:5000/api/match-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            name: name,
-            age: age,
-            interest: interest
-        })
+        body: JSON.stringify({ name, age, interest })
     })
-    .then(resp => {
-        if (!resp.ok) return resp.text().then(text => { throw new Error(text); });
-        return resp.json();
-    })
+    .then(resp => resp.json())
     .then(result => {
-        if (result.success && result.celebrity) {
-            outputDiv.innerHTML = `<b>🎉 Your Celebrity Match:</b><br>Name: ${result.celebrity.name}<br>Profession: ${result.celebrity.profession}<br>Interest: ${result.celebrity.interest}`;
-        } else {
-            outputDiv.textContent = "✅ No match found. Try another interest.";
+        if (!result.success) {
+            outputDiv.textContent = "⚠️ " + (result.error || "Unknown error");
+            return;
         }
+
+        let html = "<h3>🎯 Best Previous User Match:</h3>";
+        if (result.best_user_match) {
+            html += `<b>Name:</b> ${result.best_user_match.name}<br>`;
+            html += `<b>Age:</b> ${result.best_user_match.age}<br>`;
+            html += `<b>Interest:</b> ${result.best_user_match.interest}<br>`;
+            html += `<b>Compatibility score:</b> ${result.user_score}/100<br><br>`;
+        } else {
+            html += "No previous users found.<br><br>";
+        }
+
+        html += "<h3>🎉 Best Celebrity Match:</h3>";
+        if (result.best_celebrity_match) {
+            html += `<b>Name:</b> ${result.best_celebrity_match.name}<br>`;
+            html += `<b>Profession:</b> ${result.best_celebrity_match.profession}<br>`;
+            html += `<b>Interest:</b> ${result.best_celebrity_match.interest}<br>`;
+            html += `<b>Compatibility score:</b> ${result.celebrity_score}/100<br>`;
+        } else {
+            html += "No celebrity match found.<br>";
+        }
+
+        outputDiv.innerHTML = html;
+
+        // Refresh previous user dropdown
+        populateUserDropdown();
     })
-    .catch(e => {
-        outputDiv.textContent = "⚠️ Fetch Error: " + e;
-    });
+    .catch(e => { outputDiv.textContent = "⚠️ Error: " + e; });
+};
+
+// --- Compatibility with typed celebrity ---
+document.getElementById("compatCelebrityBtn").onclick = function() {
+    const name = document.getElementById("name").value.trim();
+    const age = document.getElementById("age").value;
+    const interest = document.getElementById("interest").value.trim();
+    const celebrity = document.getElementById("celebrityInput").value.trim();
+    const outputDiv = document.getElementById("output");
+
+    if (!name || !age || !interest || !celebrity) {
+        outputDiv.textContent = "⚠️ Please enter name, age, interest, and celebrity name.";
+        return;
+    }
+
+    outputDiv.textContent = "🤖 Checking compatibility with celebrity...";
+
+    fetch("http://localhost:5000/api/compatibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name1: name, name2: celebrity, interest1: interest })
+    })
+    .then(resp => resp.json())
+    .then(res => {
+        if (!res.success) {
+            outputDiv.textContent = "⚠️ " + (res.error || "Unknown error");
+            return;
+        }
+        outputDiv.innerHTML = `<b>Compatibility with ${celebrity}:</b> ${res.score}/100<br><b>Summary:</b> ${res.explanation}`;
+    })
+    .catch(e => { outputDiv.textContent = "⚠️ Error: " + e; });
+};
+
+// --- Compatibility with selected previous user ---
+document.getElementById("compatUserBtn").onclick = function() {
+    const name = document.getElementById("name").value.trim();
+    const age = document.getElementById("age").value;
+    const interest = document.getElementById("interest").value.trim();
+    const selectedUser = userDropdown.value;
+    const outputDiv = document.getElementById("output");
+
+    if (!name || !age || !interest || !selectedUser) {
+        outputDiv.textContent = "⚠️ Please enter name, age, interest, and select a previous user.";
+        return;
+    }
+
+    outputDiv.textContent = "🤖 Checking compatibility with previous user...";
+
+    fetch("http://localhost:5000/api/compatibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name1: name, name2: selectedUser, interest1: interest })
+    })
+    .then(resp => resp.json())
+    .then(res => {
+        if (!res.success) {
+            outputDiv.textContent = "⚠️ " + (res.error || "Unknown error");
+            return;
+        }
+        outputDiv.innerHTML = `<b>Compatibility with ${selectedUser}:</b> ${res.score}/100<br><b>Summary:</b> ${res.explanation}`;
+    })
+    .catch(e => { outputDiv.textContent = "⚠️ Error: " + e; });
 };
 </script>

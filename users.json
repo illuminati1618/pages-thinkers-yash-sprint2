@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Alice",
+    "age": 25,
+    "interest": "music"
+  },
+  {
+    "name": "Bob",
+    "age": 30,
+    "interest": "sports"
+  },
+  {
+    "name": "Charlie",
+    "age": 22,
+    "interest": "reading"
+  },
+  {
+    "name": "Sam",
+    "age": "15",
+    "interest": "travel"
+  },
+  {
+    "name": "Bob Smith",
+    "age": "17",
+    "interest": "reading"
+  },
+  {
+    "name": "Hannah Smith",
+    "age": "19",
+    "interest": "travel"
+  }
+]
