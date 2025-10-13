@@ -28,5 +28,34 @@
     "name": "Hannah Smith",
     "age": "19",
     "interest": "travel"
+  },
+  {
+    "name": "eshika pal",
+    "age": "17",
+    "interest": "sports"
+  },
+  {
+    "name": "eshika",
+    "age": "17",
+    "interest": "sports",
+    "mbti": "ISFP"
+  },
+  {
+    "name": "esh",
+    "age": "17",
+    "interest": "reading",
+    "mbti": "ESFJ"
+  },
+  {
+    "name": "esg",
+    "age": "34",
+    "interest": "music",
+    "mbti": "ESTJ"
+  },
+  {
+    "name": "es",
+    "age": "34",
+    "interest": "music",
+    "mbti": "ESTP"
   }
 ]
