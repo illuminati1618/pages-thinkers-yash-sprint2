@@ -90,7 +90,7 @@ section {
     <button id="matchBtn">Find Your Celebrity/User Match</button>
 </section>
 
-<!-- 🧠 Personality Quiz Section -->
+<!-- Personality Quiz Section -->
 <section>
     <h2>Quick Personality Quiz</h2>
     <p>Answer these 5 short questions to estimate your MBTI type.</p>
@@ -134,7 +134,7 @@ section {
 
         <div class="control-group">
             <label>5. You gain energy by...</label>
-            <select class="quiz-q" data-dimension="E-I">
+            <select class="quiz-q" data-dimension="E-I-2">
                 <option value="">-- Choose an answer --</option>
                 <option value="E">Being around people</option>
                 <option value="I">Having time alone</option>
@@ -146,7 +146,7 @@ section {
     </div>
 </section>
 
-<!-- 🎬 Celebrity Compatibility Section -->
+<!-- Celebrity Compatibility Section -->
 <section>
     <h2>Check Compatibility with Celebrity</h2>
     <div class="control-group">
@@ -169,180 +169,186 @@ section {
 
 <div id="output"></div>
 
-<script>
-const userDropdown = document.getElementById("userDropdown");
+<script type="module">
+    import { pythonURI, fetchOptions } from '{{ site.baseurl }}/assets/js/api/config.js';
 
-// --- Load previous users ---
-function populateUserDropdown() {
-    fetch("http://localhost:5000/api/previous-users")
-        .then(resp => resp.json())
-        .then(res => {
-            if (!res.success) return;
-            userDropdown.innerHTML = '<option value="">-- Select a previous user --</option>';
-            res.users.forEach(u => {
-                const opt = document.createElement("option");
-                opt.value = u.name;
-                opt.textContent = `${u.name} (${u.age} yrs, ${u.interest}, ${u.mbti || 'No MBTI'})`;
-                userDropdown.appendChild(opt);
-            });
+    const API_URL = pythonURI;
+    const userDropdown = document.getElementById("userDropdown");
+    let mbtiState = "";
+
+    // Load previous users on page load
+    function populateUserDropdown() {
+        fetch(`${API_URL}/api/previous-users`, {
+            ...fetchOptions,
+            method: "GET"
         })
-        .catch(e => console.log("Error loading previous users:", e));
-}
-populateUserDropdown();
-
-
-// 🧩 Personality Quiz Logic
-document.getElementById("getMbtiBtn").onclick = function() {
-    const answers = document.querySelectorAll(".quiz-q");
-    let scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
-
-    let allAnswered = true;
-    for (const q of answers) {
-        const val = q.value;
-        if (!val) allAnswered = false;
-        else scores[val]++;
+            .then(resp => resp.json())
+            .then(res => {
+                if (!res.success) return;
+                userDropdown.innerHTML = '<option value="">-- Select a previous user --</option>';
+                res.users.forEach(u => {
+                    const opt = document.createElement("option");
+                    opt.value = u.name;
+                    opt.textContent = `${u.name} (${u.age} yrs, ${u.interest}, ${u.mbti || 'No MBTI'})`;
+                    userDropdown.appendChild(opt);
+                });
+            })
+            .catch(e => console.log("Error loading previous users:", e));
     }
 
-    const resultDiv = document.getElementById("mbtiResult");
-
-    if (!allAnswered) {
-        resultDiv.textContent = "⚠️ Please answer all 5 questions before getting your result.";
-        resultDiv.style.color = "red";
-        return;
-    }
-
-    const mbti =
-        (scores.E >= scores.I ? "E" : "I") +
-        (scores.S >= scores.N ? "S" : "N") +
-        (scores.T >= scores.F ? "T" : "F") +
-        (scores.J >= scores.P ? "J" : "P");
-
-    resultDiv.style.color = "#fbf4f4ff";
-    resultDiv.innerHTML = `Your estimated MBTI type: <b>${mbti}</b>`;
-    document.getElementById("mbti").value = mbti;
-    localStorage.setItem("userMBTI", mbti);
-};
-
-
-// 🧭 Find Best Celebrity & User Match
-document.getElementById("matchBtn").onclick = function() {
-    const name = document.getElementById("name").value.trim();
-    const age = document.getElementById("age").value;
-    const interest = document.getElementById("interest").value.trim();
-    const mbti = document.getElementById("mbti").value.trim() || localStorage.getItem("userMBTI") || "";
-    const outputDiv = document.getElementById("output");
-
-    if (!name || !age || !interest || !mbti) {
-        outputDiv.textContent = "⚠️ Please enter name, age, interest, and MBTI (or take the quiz).";
-        return;
-    }
-
-    outputDiv.textContent = "⏳ Finding your best celebrity and previous user match...";
-
-    fetch("http://localhost:5000/api/match-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, age, interest, mbti })
-    })
-    .then(resp => resp.json())
-    .then(result => {
-        if (!result.success) {
-            outputDiv.textContent = "⚠️ " + (result.error || "Unknown error");
-            return;
-        }
-
-        let html = `<h3> Your MBTI: ${mbti}</h3><br>`;
-        html += "<h3> Best Previous User Match:</h3>";
-        if (result.best_user_match) {
-            html += `<b>Name:</b> ${result.best_user_match.name}<br>`;
-            html += `<b>Age:</b> ${result.best_user_match.age}<br>`;
-            html += `<b>Interest:</b> ${result.best_user_match.interest}<br>`;
-            html += `<b>MBTI:</b> ${result.best_user_match.mbti || 'N/A'}<br>`;
-            html += `<b>Compatibility score:</b> ${result.user_score}/100<br><br>`;
-        } else {
-            html += "No previous users found.<br><br>";
-        }
-
-        html += "<h3> Best Celebrity Match:</h3>";
-        if (result.best_celebrity_match) {
-            html += `<b>Name:</b> ${result.best_celebrity_match.name}<br>`;
-            html += `<b>Profession:</b> ${result.best_celebrity_match.profession}<br>`;
-            html += `<b>Interest:</b> ${result.best_celebrity_match.interest}<br>`;
-            html += `<b>MBTI:</b> ${result.best_celebrity_match.mbti || 'N/A'}<br>`;
-            html += `<b>Compatibility score:</b> ${result.celebrity_score}/100<br>`;
-        } else {
-            html += "No celebrity match found.<br>";
-        }
-
-        outputDiv.innerHTML = html;
+    document.addEventListener("DOMContentLoaded", function() {
         populateUserDropdown();
-    })
-    .catch(e => { outputDiv.textContent = "⚠️ Error: " + e; });
-};
+    });
 
+    // Personality Quiz Logic
+    document.getElementById("getMbtiBtn").onclick = function() {
+        const answers = document.querySelectorAll(".quiz-q");
+        let scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
 
-// ⭐ Celebrity Compatibility
-document.getElementById("compatCelebrityBtn").onclick = function() {
-    const name = document.getElementById("name").value.trim();
-    const age = document.getElementById("age").value;
-    const interest = document.getElementById("interest").value.trim();
-    const mbti = document.getElementById("mbti").value.trim() || localStorage.getItem("userMBTI") || "";
-    const celebrity = document.getElementById("celebrityInput").value.trim();
-    const outputDiv = document.getElementById("output");
+        let allAnswered = true;
+        for (const q of answers) {
+            const val = q.value;
+            if (!val) allAnswered = false;
+            else scores[val]++;
+        }
 
-    if (!name || !age || !interest || !mbti || !celebrity) {
-        outputDiv.textContent = "⚠️ Please fill all fields or take the quiz.";
-        return;
-    }
+        const resultDiv = document.getElementById("mbtiResult");
 
-    outputDiv.textContent = "🤖 Checking compatibility with celebrity...";
-
-    fetch("http://localhost:5000/api/compatibility", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name1: name, name2: celebrity, interest1: interest, mbti1: mbti })
-    })
-    .then(resp => resp.json())
-    .then(res => {
-        if (!res.success) {
-            outputDiv.textContent = "⚠️ " + (res.error || "Unknown error");
+        if (!allAnswered) {
+            resultDiv.textContent = "Please answer all 5 questions before getting your result.";
+            resultDiv.style.color = "red";
             return;
         }
-        outputDiv.innerHTML = `<b>Compatibility with ${celebrity}:</b> ${res.score}/100<br><b>Summary:</b> ${res.explanation}`;
-    })
-    .catch(e => { outputDiv.textContent = "⚠️ Error: " + e; });
-};
 
+        const mbti =
+            (scores.E >= scores.I ? "E" : "I") +
+            (scores.S >= scores.N ? "S" : "N") +
+            (scores.T >= scores.F ? "T" : "F") +
+            (scores.J >= scores.P ? "J" : "P");
 
-// 👥 Compatibility with previous user
-document.getElementById("compatUserBtn").onclick = function() {
-    const name = document.getElementById("name").value.trim();
-    const age = document.getElementById("age").value;
-    const interest = document.getElementById("interest").value.trim();
-    const mbti = document.getElementById("mbti").value.trim() || localStorage.getItem("userMBTI") || "";
-    const selectedUser = userDropdown.value;
-    const outputDiv = document.getElementById("output");
+        mbtiState = mbti;
+        resultDiv.style.color = "#333";
+        resultDiv.innerHTML = `Your estimated MBTI type: <b>${mbti}</b>`;
+        document.getElementById("mbti").value = mbti;
+    };
 
-    if (!name || !age || !interest || !mbti || !selectedUser) {
-        outputDiv.textContent = "⚠️ Please fill all fields.";
-        return;
-    }
+    // Find Best Celebrity & User Match
+    document.getElementById("matchBtn").onclick = function() {
+        const name = document.getElementById("name").value.trim();
+        const age = document.getElementById("age").value;
+        const interest = document.getElementById("interest").value.trim();
+        const mbti = document.getElementById("mbti").value.trim() || mbtiState || "";
+        const outputDiv = document.getElementById("output");
 
-    outputDiv.textContent = "🤖 Checking compatibility with previous user...";
-
-    fetch("http://localhost:5000/api/compatibility", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name1: name, name2: selectedUser, interest1: interest, mbti1: mbti })
-    })
-    .then(resp => resp.json())
-    .then(res => {
-        if (!res.success) {
-            outputDiv.textContent = "⚠️ " + (res.error || "Unknown error");
+        if (!name || !age || !interest || !mbti) {
+            outputDiv.textContent = "Please enter name, age, interest, and MBTI (or take the quiz).";
             return;
         }
-        outputDiv.innerHTML = `<b>Compatibility with ${selectedUser}:</b> ${res.score}/100<br><b>Summary:</b> ${res.explanation}`;
-    })
-    .catch(e => { outputDiv.textContent = "⚠️ Error: " + e; });
-};
+
+        outputDiv.textContent = "Finding your best celebrity and previous user match...";
+
+        fetch(`${API_URL}/api/celebrity-match`, {
+            ...fetchOptions,
+            method: "POST",
+            body: JSON.stringify({ name, age, interest, mbti })
+        })
+            .then(resp => resp.json())
+            .then(result => {
+                if (!result.success) {
+                    outputDiv.textContent = (result.error || "Unknown error");
+                    return;
+                }
+
+                let html = `<h3>Your MBTI: ${mbti}</h3><br>`;
+                html += "<h3>Best Previous User Match:</h3>";
+                if (result.best_user_match) {
+                    html += `<b>Name:</b> ${result.best_user_match.name}<br>`;
+                    html += `<b>Age:</b> ${result.best_user_match.age}<br>`;
+                    html += `<b>Interest:</b> ${result.best_user_match.interest}<br>`;
+                    html += `<b>MBTI:</b> ${result.best_user_match.mbti || 'N/A'}<br>`;
+                    html += `<b>Compatibility score:</b> ${result.user_score}/100<br><br>`;
+                } else {
+                    html += "No previous users found.<br><br>";
+                }
+
+                html += "<h3>Best Celebrity Match:</h3>";
+                if (result.best_celebrity_match) {
+                    html += `<b>Name:</b> ${result.best_celebrity_match.name}<br>`;
+                    html += `<b>Profession:</b> ${result.best_celebrity_match.profession}<br>`;
+                    html += `<b>Interest:</b> ${result.best_celebrity_match.interest}<br>`;
+                    html += `<b>MBTI:</b> ${result.best_celebrity_match.mbti || 'N/A'}<br>`;
+                    html += `<b>Compatibility score:</b> ${result.celebrity_score}/100<br>`;
+                } else {
+                    html += "No celebrity match found.<br>";
+                }
+
+                outputDiv.innerHTML = html;
+                populateUserDropdown();
+            })
+            .catch(e => { outputDiv.textContent = "Error: " + e; });
+    };
+
+    // Celebrity Compatibility
+    document.getElementById("compatCelebrityBtn").onclick = function() {
+        const name = document.getElementById("name").value.trim();
+        const age = document.getElementById("age").value;
+        const interest = document.getElementById("interest").value.trim();
+        const mbti = document.getElementById("mbti").value.trim() || mbtiState || "";
+        const celebrity = document.getElementById("celebrityInput").value.trim();
+        const outputDiv = document.getElementById("output");
+
+        if (!name || !age || !interest || !mbti || !celebrity) {
+            outputDiv.textContent = "Please fill all fields or take the quiz.";
+            return;
+        }
+
+        outputDiv.textContent = "Checking compatibility with celebrity...";
+
+        fetch(`${API_URL}/api/compatibility`, {
+            ...fetchOptions,
+            method: "POST",
+            body: JSON.stringify({ name1: name, name2: celebrity, interest1: interest, mbti1: mbti })
+        })
+            .then(resp => resp.json())
+            .then(res => {
+                if (!res.success) {
+                    outputDiv.textContent = (res.error || "Unknown error");
+                    return;
+                }
+                outputDiv.innerHTML = `<b>Compatibility with ${celebrity}:</b> ${res.score}/100<br><b>Summary:</b> ${res.explanation}`;
+            })
+            .catch(e => { outputDiv.textContent = "Error: " + e; });
+    };
+
+    // Compatibility with previous user
+    document.getElementById("compatUserBtn").onclick = function() {
+        const name = document.getElementById("name").value.trim();
+        const age = document.getElementById("age").value;
+        const interest = document.getElementById("interest").value.trim();
+        const mbti = document.getElementById("mbti").value.trim() || mbtiState || "";
+        const selectedUser = userDropdown.value;
+        const outputDiv = document.getElementById("output");
+
+        if (!name || !age || !interest || !mbti || !selectedUser) {
+            outputDiv.textContent = "Please fill all fields.";
+            return;
+        }
+
+        outputDiv.textContent = "Checking compatibility with previous user...";
+
+        fetch(`${API_URL}/api/compatibility`, {
+            ...fetchOptions,
+            method: "POST",
+            body: JSON.stringify({ name1: name, name2: selectedUser, interest1: interest, mbti1: mbti })
+        })
+            .then(resp => resp.json())
+            .then(res => {
+                if (!res.success) {
+                    outputDiv.textContent = (res.error || "Unknown error");
+                    return;
+                }
+                outputDiv.innerHTML = `<b>Compatibility with ${selectedUser}:</b> ${res.score}/100<br><b>Summary:</b> ${res.explanation}`;
+            })
+            .catch(e => { outputDiv.textContent = "Error: " + e; });
+    };
 </script>
