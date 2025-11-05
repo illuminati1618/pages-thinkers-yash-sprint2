@@ -254,6 +254,34 @@ summary {
 details[open] > summary {
     list-style-type: '▼ ';
 }
+
+/* Itinerary Info Box */
+.itinerary-info {
+  background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.06));
+  border: 2px solid rgba(78,204,163,0.2);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin: 1rem 0;
+}
+
+.itinerary-info h3 {
+  color: #4ecca3;
+  margin: 0 0 0.5rem 0;
+}
+
+.selected-foods {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.food-item {
+  padding: 0.5rem;
+  background: rgba(78,204,163,0.1);
+  border-left: 3px solid #4ecca3;
+  border-radius: 0.35rem;
+}
 </style>
 
 <!-- Dark mode toggle -->
@@ -261,15 +289,23 @@ details[open] > summary {
   <button id="themeToggleBtn" class="sq-btn" title="Toggle dark / light">🌙 Dark</button>
 </div>
 
+<!-- Itinerary Info Display -->
+<div id="itineraryInfo" class="itinerary-info" style="display:none;">
+  <h3>🍽️ Your Selected San Diego Foods</h3>
+  <div class="selected-foods" id="selectedFoodsList"></div>
+  <p class="small" style="margin-top: 0.75rem; opacity: 0.8;">These are the foods from your West Coast trip itinerary. Complete the tasks below to learn about them!</p>
+</div>
+
 <!-- Progress Tracker -->
 <div class="progress-tracker">
   <h3>🎯 San Diego Progress Tracker</h3>
   <div id="progress-display">
-    <div id="task-fishtaco" class="task-item">Task 1: Fish Taco Class - <span class="status">Incomplete</span></div>
-    <div id="task-burritocart" class="task-item">Task 2: Burrito Cart - <span class="status">Incomplete</span></div>
-    <div id="task-bajabowl" class="task-item">Task 3: Build Baja Bowl - <span class="status">Incomplete</span></div>
-    <div id="task-seed" class="task-item">Task 4: Seed Pantry - <span class="status">Incomplete</span></div>
-    <div id="task-view" class="task-item">Task 5: View Pantry - <span class="status">Incomplete</span></div>
+    <div id="task-fishtacos" class="task-item">🌮 Fish Tacos (Baja-style) - <span class="status">Incomplete</span></div>
+    <div id="task-burrito" class="task-item">🌯 California Burrito - <span class="status">Incomplete</span></div>
+    <div id="task-fries" class="task-item">🍟 Carne Asada Fries - <span class="status">Incomplete</span></div>
+    <div id="task-acai" class="task-item">🍇 Acai Bowls - <span class="status">Incomplete</span></div>
+    <div id="task-bajabowl" class="task-item">🥗 Baja Bowl - <span class="status">Incomplete</span></div>
+    <div id="task-seafood" class="task-item">🐟 Baja Seafood - <span class="status">Incomplete</span></div>
   </div>
   <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.01); border-radius: 0.5rem;">
     <strong>Completion: <span id="completion-percentage">0%</span></strong>
@@ -279,8 +315,7 @@ details[open] > summary {
   </div>
 </div>
 
-
-<div class="sq-toast" id="sqToast">Baja Bowl added — +50 XP</div>
+<div class="sq-toast" id="sqToast">Fish Tacos created — +15 XP</div>
 
 <!-- Unlock Notification -->
 <div id="unlockNotification" class="unlock-notification">
@@ -299,7 +334,6 @@ details[open] > summary {
     - **dish_ingredients** join records — ideally inside a single transaction (all succeed or all fail).  
   <br>
   - Analogy: your database is like a **kitchen pantry**. Adding a dish = adding a **recipe card** and ensuring all the required ingredients already exist in the pantry.
-
 
 # %% Interactive: Mock Backend & Utilities
 
@@ -320,12 +354,48 @@ details[open] > summary {
 (function () {
   // Task completion tracking
   window.taskProgress = {
-    fishtaco: false,
-    burritocart: false,
+    fishtacos: false,
+    burrito: false,
+    fries: false,
+    acai: false,
     bajabowl: false,
-    seed: false,
-    view: false
+    seafood: false
   };
+
+  // Load and display itinerary foods
+  function loadItineraryFoods() {
+    try {
+      const itineraryData = localStorage.getItem('westCoastItinerary');
+      if (itineraryData) {
+        const itinerary = JSON.parse(itineraryData);
+        if (itinerary.cities && itinerary.cities['San Diego']) {
+          const sdFoods = itinerary.cities['San Diego'].foods;
+          if (sdFoods && sdFoods.length > 0) {
+            displayItineraryFoods(sdFoods);
+            window.userSelectedFoods = sdFoods;
+            return sdFoods;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error loading itinerary:', e);
+    }
+    return null;
+  }
+
+  function displayItineraryFoods(foods) {
+    const infoBox = document.getElementById('itineraryInfo');
+    const foodsList = document.getElementById('selectedFoodsList');
+    
+    if (foods && foods.length > 0) {
+      foodsList.innerHTML = foods.map(food => 
+        `<div class="food-item">🍽️ ${food}</div>`
+      ).join('');
+      infoBox.style.display = 'block';
+    } else {
+      infoBox.style.display = 'none';
+    }
+  }
 
   // Load progress from localStorage
   function loadTaskProgress() {
@@ -361,7 +431,7 @@ details[open] > summary {
 
   // Update progress display
   function updateProgressDisplay() {
-    const tasks = ['fishtaco', 'burritocart', 'bajabowl', 'seed', 'view'];
+    const tasks = ['fishtacos', 'burrito', 'fries', 'acai', 'bajabowl', 'seafood'];
     let completedCount = 0;
 
     tasks.forEach(task => {
@@ -399,16 +469,21 @@ details[open] > summary {
         notification.style.display = 'block';
         setTimeout(() => notification.style.display = 'none', 4000);
       }
-      unlockNextCity();
+      unlockLosAngeles();
       console.log('🎉 San Diego module completed! Los Angeles should now be unlocked.');
     }
   }
 
-  // Fallback unlock methods
-  function unlockNextCity() {
+  // Unlock Los Angeles
+  function unlockLosAngeles() {
     try {
       const saved = localStorage.getItem('city_progress'); 
-      let gameProgress = saved ? JSON.parse(saved) : { unlockedCities:[0], completedCities:[], totalCitiesCompleted:0 };
+      let gameProgress = saved ? JSON.parse(saved) : { 
+        unlockedCities: [0], 
+        completedCities: [], 
+        totalCitiesCompleted: 0 
+      };
+      
       if (!gameProgress.completedCities.includes(0)) {
         gameProgress.completedCities.push(0);
         gameProgress.totalCitiesCompleted++;
@@ -416,10 +491,17 @@ details[open] > summary {
       if (!gameProgress.unlockedCities.includes(1)) {
         gameProgress.unlockedCities.push(1);
       }
+      
       localStorage.setItem('city_progress', JSON.stringify(gameProgress));
-      console.log('✅ Progress updated:', gameProgress);
+      console.log('✅ San Diego completed! LA unlocked. Progress:', gameProgress);
+      
+      // Try to notify parent window
+      if (window.parent && window.parent.markCityCompleted) {
+        window.parent.markCityCompleted(0);
+      }
+      
     } catch (e) {
-      console.error('Unlock failed:', e);
+      console.error('❌ SD Unlock failed:', e);
     }
   }
 
@@ -479,7 +561,19 @@ details[open] > summary {
     }
     async getDishes(query={}) {
       const city = (query.city||'sd').toLowerCase();
-      return this.db.dishes.filter(d => (d.city||'sd').toLowerCase()===city);
+      let dishes = this.db.dishes.filter(d => (d.city||'sd').toLowerCase()===city);
+      
+      // Filter by user's selected foods if available
+      if (window.userSelectedFoods && window.userSelectedFoods.length > 0) {
+        dishes = dishes.filter(d => {
+          return window.userSelectedFoods.some(selectedFood => 
+            d.name.toLowerCase().includes(selectedFood.toLowerCase()) ||
+            selectedFood.toLowerCase().includes(d.name.toLowerCase())
+          );
+        });
+      }
+      
+      return dishes;
     }
     reset() { this.db.reset(); }
   }
@@ -506,343 +600,526 @@ details[open] > summary {
     window.logTo('terminal-init','[MockAPI] DB loaded from localStorage.');
   }
 
+  // Load itinerary foods on page load
+  loadItineraryFoods();
   loadTaskProgress();
 })();
 </script>
 
 ---
 
-- **⚙️ How this interactive page works:**  
-  - Each task includes an editable **code area** (or input form) and a **Run** button.  
-  - Running code appends output to the **terminal area** below that task.  
-  <br>
-  - The page uses a **mock backend (MockAPI)** that simulates:  
-    - POST /api/dishes  
-    - POST /api/dishes/bulk  
-    - GET /api/dishes?city=sd  
-  <br>
-  - Data is stored in **localStorage**, so progress **persists** across refreshes.  
-  - When creating the **Baja Bowl**, a toast appears showing “+50 XP 🎉”.
-
-<br>
-
-<!-- Task 1 -->
+<!-- Task 1: Fish Tacos (Baja-style) -->
 <details open>
-  <summary>Task 1: Fish Taco Class</summary>
+  <summary>🌮 Fish Tacos (Baja-style) CREATE</summary>
   <div class="sq-card">
-    <div class="sq-label">Describe & implement the <strong>FishTaco</strong> class (id, fishType, toppings[], sauce, price, spiceLevel) and method <code>calculateTotalPrice()</code> (<em>8% tax</em>). Throw error if fishType missing.</div>
-    <textarea id="code-fishtaco" class="code-editor">
-// class FishTaco { ... } - edit or run the example
+    <div class="sq-label">Create a <strong>Fish Taco</strong> class with properties (id, fishType, toppings, sauce, price, spiceLevel) and method <code>calculateTotalPrice()</code> with 8% tax. Validate fishType is required.</div>
+    <textarea id="code-fishtacos" class="code-editor">
+// Fish Tacos (Baja-style) - CREATE operation
 class FishTaco {
-  constructor(id, fishType, toppings = [], sauce, price = 0, spiceLevel = "Mild") {
-    if (!fishType) throw new Error("Fish type required");
+  constructor(id, fishType, toppings = [], sauce, price = 0, spiceLevel = 1) {
+    if (!fishType) throw new Error("Fish type is required for authentic Baja tacos");
     this.id = id;
     this.fishType = fishType;
     this.toppings = Array.isArray(toppings) ? toppings : [];
-    this.sauce = sauce || null;
-    this.price = Number(price) || 0;
-    this.spiceLevel = spiceLevel;
+    this.sauce = sauce || "chipotle crema";
+    this.price = Number(price) || 12.99;
+    this.spiceLevel = Math.max(1, Math.min(5, Number(spiceLevel) || 1));
   }
 
   calculateTotalPrice() {
-    // add 8% tax, round to 2 decimals
+    // Add 8% tax, round to 2 decimals
     return Math.round((this.price * 1.08) * 100) / 100;
   }
+
+  addTopping(topping) {
+    if (topping && !this.toppings.includes(topping)) {
+      this.toppings.push(topping);
+    }
+  }
 }
 
-// sample usage:
-const taco = new FishTaco("t1", "Mahi-Mahi", ["cabbage","lime","pico"], "chipotle", 5.99, "Medium");
-console.log("Created:", taco);
-console.log("Total price:", taco.calculateTotalPrice().toFixed(2));
+// CREATE example - Fresh Baja fish taco
+const bajaTaco = new FishTaco("ft1", "mahi-mahi", 
+  ["cabbage slaw", "pico de gallo", "lime"], 
+  "baja sauce", 13.50, 2);
 
-// Mark task as complete when run successfully
-completeTask('fishtaco');
+console.log("🌮 Created Fish Taco:", bajaTaco);
+console.log("📊 Total with tax:", "$" + bajaTaco.calculateTotalPrice().toFixed(2));
+console.log("🌶️ Spice level:", bajaTaco.spiceLevel + "/5");
+
+// Mark task as complete
+completeTask('fishtacos');
     </textarea>
     <div style="margin-top:0.5rem" class="editor-actions">
-      <button class="sq-btn sq-run" onclick="runEditor('code-fishtaco','terminal-fishtaco')">Run</button>
-      <button class="sq-btn" onclick="copyEditor('code-fishtaco')">Copy</button>
+      <button class="sq-btn sq-run" onclick="runEditor('code-fishtacos','terminal-fishtacos')">🌮 Create Fish Tacos</button>
+      <button class="sq-btn" onclick="copyEditor('code-fishtacos')">Copy Code</button>
     </div>
-    <pre id="terminal-fishtaco" class="sq-terminal"></pre>
+    <pre id="terminal-fishtacos" class="sq-terminal"></pre>
+    
+    <div class="sq-card quiz-block" style="background: rgba(99,102,241,0.06); margin-top:0.5rem;">
+      <strong>🧩 Quick Quiz:</strong>
+      <div class="quiz-question" data-answer="b">
+        <p>1️⃣ Why validate fishType in the constructor?</p>
+        <label><input type="radio" name="q1-fish" value="a"> It improves performance</label><br>
+        <label><input type="radio" name="q1-fish" value="b"> It enforces data integrity</label><br>
+        <label><input type="radio" name="q1-fish" value="c"> It adds toppings automatically</label>
+      </div>
+      <button class="sq-btn sq-run" onclick="submitQuiz(this)">Submit Answer</button>
+      <div class="quiz-feedback small" style="margin-top:0.5rem;"></div>
+    </div>
   </div>
 </details>
 
-<!-- Task 2 -->
+<!-- Task 2: California Burrito -->
 <details>
-  <summary>Task 2: BurritoCart</summary>
+  <summary>🌯 California Burrito CREATE</summary>
   <div class="sq-card">
-    <div class="sq-label">Implement <strong>BurritoCart</strong> with methods <code>addBurrito()</code>, <code>removeBurrito()</code>, <code>getTotalPrice()</code>, <code>getBurritosByFilling()</code>.</div>
-    <textarea id="code-burritocart" class="code-editor">
-// BurritoCart implementation
-class BurritoCart {
-  constructor() {
-    this.burritos = [];
+    <div class="sq-label">Implement <strong>CaliforniaBurrito</strong> class with properties (id, protein, hasFries, size, extras, price) and method <code>calculateCalories()</code>. Fries are what make it "California style"!</div>
+    <textarea id="code-burrito" class="code-editor">
+// California Burrito - CREATE with validation
+class CaliforniaBurrito {
+  constructor(id, protein, hasFries = true, size = "regular", extras = [], price = 0) {
+    if (!protein) throw new Error("Protein is required for California burrito");
+    this.id = id;
+    this.protein = protein;
+    this.hasFries = hasFries; // What makes it "California style"
+    this.size = size; // small, regular, large
+    this.extras = Array.isArray(extras) ? extras : [];
+    this.price = Number(price) || 10.99;
+    this.createdAt = new Date().toISOString();
   }
-  addBurrito(burrito) {
-    if (!burrito || typeof burrito !== 'object') throw new Error('Invalid burrito');
-    this.burritos.push(burrito);
+
+  calculateCalories() {
+    let baseCalories = 650; // Base burrito
+    if (this.hasFries) baseCalories += 200; // Fries add calories
+    if (this.size === "large") baseCalories += 150;
+    if (this.size === "small") baseCalories -= 100;
+    baseCalories += this.extras.length * 50; // Each extra = 50 cal
+    return baseCalories;
   }
-  removeBurrito(index) {
-    if (index < 0 || index >= this.burritos.length) return;
-    this.burritos.splice(index,1);
+
+  addExtra(extra) {
+    if (extra && !this.extras.includes(extra)) {
+      this.extras.push(extra);
+      this.price += 1.50; // Each extra costs more
+    }
   }
-  getTotalPrice() { return this.burritos.reduce((s,b)=>s+(Number(b.price)||0),0); }
-  getBurritosByFilling(filling) { return this.burritos.filter(b => b.filling === filling); }
 }
 
-// example
-const cart = new BurritoCart();
-cart.addBurrito({ name: "California Burrito", filling: "Carne Asada", price: 8.5 });
-cart.addBurrito({ name: "Veggie Burrito", filling: "Beans", price: 7.0 });
-console.log("Cart:", cart.burritos);
-console.log("Total:", cart.getTotalPrice());
-console.log("Carne Asada burritos:", cart.getBurritosByFilling("Carne Asada"));
+// CREATE a classic California burrito
+const caliBurrito = new CaliforniaBurrito("cb1", "carne asada", true, "large", 
+  ["guacamole", "sour cream"], 12.99);
 
-// Mark task as complete when run successfully
-completeTask('burritocart');
+console.log("🌯 Created California Burrito:", caliBurrito);
+console.log("🔥 Calories:", caliBurrito.calculateCalories());
+console.log("💰 Price with extras:", "$" + caliBurrito.price.toFixed(2));
+
+// Mark task as complete
+completeTask('burrito');
     </textarea>
     <div style="margin-top:0.5rem" class="editor-actions">
-      <button class="sq-btn sq-run" onclick="runEditor('code-burritocart','terminal-burritocart')">Run</button>
-      <button class="sq-btn" onclick="copyEditor('code-burritocart')">Copy</button>
+      <button class="sq-btn sq-run" onclick="runEditor('code-burrito','terminal-burrito')">🌯 Create Burrito</button>
+      <button class="sq-btn" onclick="copyEditor('code-burrito')">Copy Code</button>
     </div>
-    <pre id="terminal-burritocart" class="sq-terminal"></pre>
+    <pre id="terminal-burrito" class="sq-terminal"></pre>
+    
+    <div class="sq-card quiz-block" style="background: rgba(99,102,241,0.06); margin-top:0.5rem;">
+      <strong>🧩 Quick Quiz:</strong>
+      <div class="quiz-question" data-answer="a">
+        <p>1️⃣ What makes a burrito "California style"?</p>
+        <label><input type="radio" name="q2-cali" value="a"> Having french fries inside</label><br>
+        <label><input type="radio" name="q2-cali" value="b"> Being made in California</label><br>
+        <label><input type="radio" name="q2-cali" value="c"> Using avocado</label>
+      </div>
+      <button class="sq-btn sq-run" onclick="submitQuiz(this)">Submit Answer</button>
+      <div class="quiz-feedback small" style="margin-top:0.5rem;"></div>
+    </div>
   </div>
 </details>
 
-<!-- Task 3 -->
+<!-- Task 3: Carne Asada Fries -->
 <details>
-  <summary>Task 3: Build the Baja Bowl</summary>
+  <summary>🍟 Carne Asada Fries CREATE</summary>
   <div class="sq-card">
-    <div class="sq-label">Use the form to build a <strong>Baja Bowl</strong>. Required fields: <em>name, category, ingredients (name, qty, unit), calories</em>. Photo may be a URL or uploaded file (stored as data URL).</div>
+    <div class="sq-label">Build a <strong>CarneAsadaFries</strong> class with properties (id, friesType, meatPortion, toppings, cheeseType, price) and method <code>isLoaded()</code> that checks if it has at least 3 toppings.</div>
+    <textarea id="code-fries" class="code-editor">
+// Carne Asada Fries - CREATE loaded fries
+class CarneAsadaFries {
+  constructor(id, friesType = "seasoned", meatPortion = "regular", toppings = [], cheeseType = "cheddar", price = 0) {
+    this.id = id;
+    this.friesType = friesType;
+    this.meatPortion = meatPortion; // light, regular, extra
+    this.toppings = Array.isArray(toppings) ? toppings : [];
+    this.cheeseType = cheeseType;
+    this.price = Number(price) || 14.99;
+    this.isShareable = this.meatPortion === "extra";
+  }
+
+  isLoaded() {
+    // "Loaded" fries have at least 3 toppings
+    return this.toppings.length >= 3;
+  }
+
+  addTopping(topping) {
+    if (topping && !this.toppings.includes(topping)) {
+      this.toppings.push(topping);
+      this.price += 0.75; // Each topping costs extra
+    }
+  }
+
+  calculateWeight() {
+    // Estimate weight in oz
+    let weight = 12; // Base fries
+    if (this.meatPortion === "extra") weight += 6;
+    else if (this.meatPortion === "regular") weight += 4;
+    weight += this.toppings.length * 1.5;
+    return Math.round(weight * 10) / 10;
+  }
+}
+
+// CREATE fully loaded carne asada fries
+const loadedFries = new CarneAsadaFries("caf1", "crispy", "extra", 
+  ["guacamole", "sour cream", "pico de gallo", "jalapeños"], 
+  "mexican blend", 16.99);
+
+console.log("🍟 Created Carne Asada Fries:", loadedFries);
+console.log("🔥 Is loaded?", loadedFries.isLoaded());
+console.log("⚖️ Estimated weight:", loadedFries.calculateWeight() + " oz");
+console.log("💰 Final price:", "$" + loadedFries.price.toFixed(2));
+
+// Mark task as complete
+completeTask('fries');
+    </textarea>
+    <div style="margin-top:0.5rem" class="editor-actions">
+      <button class="sq-btn sq-run" onclick="runEditor('code-fries','terminal-fries')">🍟 Create Loaded Fries</button>
+      <button class="sq-btn" onclick="copyEditor('code-fries')">Copy Code</button>
+    </div>
+    <pre id="terminal-fries" class="sq-terminal"></pre>
+    
+    <div class="sq-card quiz-block" style="background: rgba(99,102,241,0.06); margin-top:0.5rem;">
+      <strong>🧩 Quick Quiz:</strong>
+      <div class="quiz-question" data-answer="c">
+        <p>1️⃣ What makes fries "loaded" in this implementation?</p>
+        <label><input type="radio" name="q3-loaded" value="a"> Extra meat portion</label><br>
+        <label><input type="radio" name="q3-loaded" value="b"> Special cheese type</label><br>
+        <label><input type="radio" name="q3-loaded" value="c"> At least 3 toppings</label>
+      </div>
+      <button class="sq-btn sq-run" onclick="submitQuiz(this)">Submit Answer</button>
+      <div class="quiz-feedback small" style="margin-top:0.5rem;"></div>
+    </div>
+  </div>
+</details>
+
+<!-- Task 4: Acai Bowls -->
+<details>
+  <summary>🍇 Acai Bowls CREATE</summary>
+  <div class="sq-card">
+    <div class="sq-label">Create an <strong>AcaiBowl</strong> class with properties (id, size, baseIngredients, toppings, granola, price) and methods <code>calculateNutritionScore()</code> and <code>isHealthy()</code>.</div>
+    <textarea id="code-acai" class="code-editor">
+// Acai Bowl - CREATE healthy option
+class AcaiBowl {
+  constructor(id, size = "regular", baseIngredients = [], toppings = [], granola = true, price = 0) {
+    this.id = id;
+    this.size = size; // small, regular, large
+    this.baseIngredients = Array.isArray(baseIngredients) ? baseIngredients : ["acai", "banana"];
+    this.toppings = Array.isArray(toppings) ? toppings : [];
+    this.granola = granola;
+    this.price = Number(price) || 11.99;
+    this.isVegan = this.checkVegan();
+  }
+
+  calculateNutritionScore() {
+    let score = 0;
+    // Base ingredients contribute to health score
+    score += this.baseIngredients.length * 10;
+    // Healthy toppings boost score
+    const healthyToppings = ["blueberries", "strawberries", "coconut", "chia seeds", "hemp hearts"];
+    this.toppings.forEach(topping => {
+      if (healthyToppings.includes(topping.toLowerCase())) score += 15;
+      else score += 5;
+    });
+    if (this.granola) score += 10;
+    return score;
+  }
+
+  isHealthy() {
+    return this.calculateNutritionScore() >= 50;
+  }
+
+  checkVegan() {
+    const nonVegan = ["honey", "yogurt", "whey protein"];
+    return !this.toppings.some(t => nonVegan.includes(t.toLowerCase()));
+  }
+
+  addTopping(topping) {
+    if (topping && !this.toppings.includes(topping)) {
+      this.toppings.push(topping);
+      this.price += 1.25;
+    }
+  }
+}
+
+// CREATE a superfood acai bowl
+const superBowl = new AcaiBowl("ab1", "large", 
+  ["acai", "banana", "mango"], 
+  ["blueberries", "chia seeds", "coconut", "hemp hearts"], 
+  true, 14.99);
+
+console.log("🍇 Created Acai Bowl:", superBowl);
+console.log("💪 Nutrition score:", superBowl.calculateNutritionScore());
+console.log("🥗 Is healthy?", superBowl.isHealthy());
+console.log("🌱 Is vegan?", superBowl.isVegan);
+
+// Mark task as complete
+completeTask('acai');
+    </textarea>
+    <div style="margin-top:0.5rem" class="editor-actions">
+      <button class="sq-btn sq-run" onclick="runEditor('code-acai','terminal-acai')">🍇 Create Acai Bowl</button>
+      <button class="sq-btn" onclick="copyEditor('code-acai')">Copy Code</button>
+    </div>
+    <pre id="terminal-acai" class="sq-terminal"></pre>
+    
+    <div class="sq-card quiz-block" style="background: rgba(99,102,241,0.06); margin-top:0.5rem;">
+      <strong>🧩 Quick Quiz:</strong>
+      <div class="quiz-question" data-answer="b">
+        <p>1️⃣ What determines if an acai bowl is "healthy" in this code?</p>
+        <label><input type="radio" name="q4-healthy" value="a"> If it's vegan</label><br>
+        <label><input type="radio" name="q4-healthy" value="b"> If nutrition score >= 50</label><br>
+        <label><input type="radio" name="q4-healthy" value="c"> If it has granola</label>
+      </div>
+      <button class="sq-btn sq-run" onclick="submitQuiz(this)">Submit Answer</button>
+      <div class="quiz-feedback small" style="margin-top:0.5rem;"></div>
+    </div>
+  </div>
+</details>
+
+<!-- Task 5: Baja Bowl -->
+<details>
+  <summary>🥗 Baja Bowl CREATE via API</summary>
+  <div class="sq-card">
+    <div class="sq-label">Use the form to CREATE a Baja Bowl via our mock API! Fill in the details and make a POST request to simulate database insertion.</div>
     <div style="display:grid; grid-template-columns: 1fr; gap:0.5rem;">
-      <label class="sq-label">Dish name</label>
-      <input id="dish-name" class="sq-field" placeholder="Baja Bowl" value="Baja Bowl" />
+      <label class="sq-label">Bowl Name</label>
+      <input id="bowl-name" class="sq-field" placeholder="Baja Bowl" value="Baja Bowl" />
 
-      <label class="sq-label">Category</label>
-      <input id="dish-category" class="sq-field" placeholder="Healthy" value="Healthy" />
+      <label class="sq-label">Base Type</label>
+      <select id="bowl-base" class="sq-field">
+        <option value="cilantro-lime rice">Cilantro-Lime Rice</option>
+        <option value="quinoa">Quinoa</option>
+        <option value="lettuce">Lettuce Base</option>
+      </select>
+
+      <label class="sq-label">Protein</label>
+      <select id="bowl-protein" class="sq-field">
+        <option value="grilled fish">Grilled Fish</option>
+        <option value="shrimp">Baja Shrimp</option>
+        <option value="chicken">Lime Chicken</option>
+      </select>
 
       <label class="sq-label">Calories</label>
-      <input id="dish-calories" type="number" class="sq-field" placeholder="600" value="600" />
+      <input id="bowl-calories" type="number" class="sq-field" placeholder="425" value="425" />
 
-      <label class="sq-label">Photo URL (optional)</label>
-      <input id="dish-photo" class="sq-field" placeholder="https://..." />
-
-      <label class="sq-label">Add Ingredients (name, qty, unit)</label>
+      <label class="sq-label">Baja Bowl Ingredients</label>
       <div style="display:flex; gap:0.5rem;">
-        <input id="ing-name" class="sq-field" placeholder="avocado" />
-        <input id="ing-qty" class="sq-field" placeholder="1" />
-        <input id="ing-unit" class="sq-field" placeholder="cup" />
-        <button class="sq-btn" onclick="addIngredient()">Add</button>
+        <input id="bowl-ing-name" class="sq-field" placeholder="black beans" />
+        <input id="bowl-ing-qty" class="sq-field" placeholder="0.5" />
+        <input id="bowl-ing-unit" class="sq-field" placeholder="cup" />
+        <button class="sq-btn" onclick="addBowlIngredient()">Add</button>
       </div>
 
-      <div id="ingredients-list" class="small" style="margin-top:0.5rem">No ingredients yet</div>
+      <div id="bowl-ingredients-list" class="small" style="margin-top:0.5rem">No ingredients yet</div>
 
       <div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
-        <button class="sq-btn sq-run" onclick="runCreateForm()">Create Dish (POST)</button>
-        <button class="sq-btn" onclick="clearForm()">Clear</button>
+        <button class="sq-btn sq-run" onclick="createBajaBowl()">🥗 CREATE Baja Bowl</button>
+        <button class="sq-btn" onclick="clearBowlForm()">Clear Form</button>
+        <button class="sq-btn" onclick="autofillBajaBowl()">Auto-fill Example</button>
       </div>
 
-      <div style="margin-top:0.5rem">
-        <div id="terminal-create" class="sq-terminal"></div>
-      </div>
+      <div id="terminal-bajabowl" class="sq-terminal" style="margin-top:0.5rem"></div>
     </div>
   </div>
 </details>
 
 <script>
 (function(){
-  window._localIngredientBuffer = [];
-  window.addIngredient = function() {
-    const name = document.getElementById('ing-name').value.trim();
-    const qty = document.getElementById('ing-qty').value.trim();
-    const unit = document.getElementById('ing-unit').value.trim();
+  window._bowlIngredientBuffer = [];
+  
+  window.autofillBajaBowl = function() {
+    document.getElementById('bowl-name').value = "Signature Baja Bowl";
+    document.getElementById('bowl-base').value = "cilantro-lime rice";
+    document.getElementById('bowl-protein').value = "grilled fish";
+    document.getElementById('bowl-calories').value = "450";
+    
+    window._bowlIngredientBuffer = [
+      { name: "black beans", qty: "0.5", unit: "cup" },
+      { name: "pico de gallo", qty: "2", unit: "tbsp" },
+      { name: "avocado", qty: "0.25", unit: "whole" },
+      { name: "lime crema", qty: "1", unit: "drizzle" }
+    ];
+    renderBowlIngredientList();
+  };
+  
+  window.addBowlIngredient = function() {
+    const name = document.getElementById('bowl-ing-name').value.trim();
+    const qty = document.getElementById('bowl-ing-qty').value.trim();
+    const unit = document.getElementById('bowl-ing-unit').value.trim();
     if (!name) { alert('Ingredient name required'); return; }
-    window._localIngredientBuffer.push({ name, qty: qty || null, unit: unit || null });
-    document.getElementById('ing-name').value = '';
-    document.getElementById('ing-qty').value = '';
-    document.getElementById('ing-unit').value = '';
-    renderIngredientList();
+    window._bowlIngredientBuffer.push({ name, qty: qty || null, unit: unit || null });
+    document.getElementById('bowl-ing-name').value = '';
+    document.getElementById('bowl-ing-qty').value = '';
+    document.getElementById('bowl-ing-unit').value = '';
+    renderBowlIngredientList();
   };
 
-  window.renderIngredientList = function() {
-    const el = document.getElementById('ingredients-list');
-    if (!window._localIngredientBuffer.length) { el.textContent = 'No ingredients yet'; return; }
-    el.innerHTML = window._localIngredientBuffer.map((ing,i) => {
-      return `${i+1}. ${ing.name} — ${ing.qty||''} ${ing.unit||''} <button class="ingredients-remove-btn" onclick="removeIngredient(${i})">remove</button>`;
+  window.renderBowlIngredientList = function() {
+    const el = document.getElementById('bowl-ingredients-list');
+    if (!window._bowlIngredientBuffer.length) { el.textContent = 'No ingredients yet'; return; }
+    el.innerHTML = window._bowlIngredientBuffer.map((ing,i) => {
+      return `${i+1}. ${ing.name} — ${ing.qty||''} ${ing.unit||''} <button class="ingredients-remove-btn" onclick="removeBowlIngredient(${i})">remove</button>`;
     }).join('<br>');
   };
 
-  window.removeIngredient = function(i) { window._localIngredientBuffer.splice(i,1); renderIngredientList(); };
+  window.removeBowlIngredient = function(i) { window._bowlIngredientBuffer.splice(i,1); renderBowlIngredientList(); };
 
-  window.clearForm = function() {
-    document.getElementById('dish-name').value = '';
-    document.getElementById('dish-category').value = '';
-    document.getElementById('dish-calories').value = '';
-    document.getElementById('dish-photo').value = '';
-    window._localIngredientBuffer = [];
-    renderIngredientList();
-    clearTerm('terminal-create');
+  window.clearBowlForm = function() {
+    document.getElementById('bowl-name').value = '';
+    document.getElementById('bowl-calories').value = '';
+    window._bowlIngredientBuffer = [];
+    renderBowlIngredientList();
+    clearTerm('terminal-bajabowl');
   };
 
-  window.runCreateForm = async function() {
-    clearTerm('terminal-create');
-    const name = document.getElementById('dish-name').value.trim();
-    const category = document.getElementById('dish-category').value.trim();
-    const calories = parseInt(document.getElementById('dish-calories').value);
-    const photo = document.getElementById('dish-photo').value.trim() || null;
-    const ingredients = window._localIngredientBuffer.slice();
+  window.createBajaBowl = async function() {
+    clearTerm('terminal-bajabowl');
+    const name = document.getElementById('bowl-name').value.trim();
+    const base = document.getElementById('bowl-base').value;
+    const protein = document.getElementById('bowl-protein').value;
+    const calories = parseInt(document.getElementById('bowl-calories').value);
+    const ingredients = window._bowlIngredientBuffer.slice();
 
-    // client-side validation
-    if (!name || !category || isNaN(calories) || !ingredients.length) {
-      logTo('terminal-create', '[Client] Validation failed: name, category, calories, and at least 1 ingredient required');
+    if (!name || !ingredients.length) {
+      logTo('terminal-bajabowl', '[Client] Validation failed: name and ingredients required');
       return;
     }
 
-    const payload = { name, category, calories, photo, ingredients, city: 'sd' };
+    const payload = { 
+      name, 
+      category: "Healthy Bowl", 
+      calories, 
+      base, 
+      protein,
+      ingredients, 
+      city: 'sd' 
+    };
 
-    logTo('terminal-create', '[Client] Sending POST /api/dishes', payload);
-
-    // call mock API
+    logTo('terminal-bajabowl', '[Client] POST /api/dishes (Baja Bowl)', payload);
     const res = await window.MockAPIInstance.postDish(payload);
+    
     if (res.status === 201) {
-      logTo('terminal-create', '[Server] 201 Created', res.body);
-      showToast(res.body.name + ' added — +50 XP');
-      completeTask('bajabowl'); // Mark task as complete
+      logTo('terminal-bajabowl', '[Server] 201 Created', res.body);
+      showToast('🥗 Baja Bowl created — +15 XP');
+      completeTask('bajabowl');
     } else {
-      logTo('terminal-create', '[Server] Error', res);
+      logTo('terminal-bajabowl', '[Server] Error', res);
     }
   };
 })();
 </script>
 
-<!-- Task 4 -->
+<!-- Task 6: Baja Seafood -->
 <details>
-  <summary>Task 4: Programmatic POST & Unit Test</summary>
+  <summary>🐟 Baja Seafood CREATE Collection</summary>
   <div class="sq-card">
-    <div class="sq-label">Simulate a POST /api/dishes call programmatically (JS). There is also a simple unit test runner below to assert 201 and returned resource.</div>
-    <textarea id="code-post" class="code-editor">
-// Example programmatic POST using MockAPIInstance
-(async function(){
-  const payload = {
-    name: "Carne Asada Fries",
-    category: "Fusion",
-    calories: 900,
-    photo: null,
-    ingredients: [
-      { name: "fries", qty: "1", unit: "plate" },
-      { name: "steak", qty: "150", unit: "g" },
-      { name: "cheese", qty: "50", unit: "g" }
-    ],
-    city: "sd"
-  };
-
-  const res = await MockAPIInstance.postDish(payload);
-  console.log("Status:", res.status);
-  console.log("Body:", res.body);
-})();
-    </textarea>
-    <div style="margin-top:0.5rem" class="editor-actions">
-      <button class="sq-btn sq-run" onclick="runEditor('code-post','terminal-post')">Run</button>
-      <button class="sq-btn" onclick="copyEditor('code-post')">Copy</button>
+    <div class="sq-label">Create a collection of Baja seafood dishes and bulk insert them into the database using POST /api/dishes/bulk</div>
+    <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+      <button class="sq-btn sq-run" onclick="createBajaSeafoodCollection()">🐟 CREATE Seafood Collection</button>
+      <button class="sq-btn" onclick="clearTerm('terminal-seafood')">Clear Terminal</button>
     </div>
-    <pre id="terminal-post" class="sq-terminal"></pre>
-    <div style="margin-top:0.75rem;">
-      <button class="sq-btn sq-run" onclick="runUnitTest()">Run Unit Test: POST returns 201 & created resource</button>
-      <div id="terminal-test" class="sq-terminal" style="margin-top:0.5rem"></div>
+    <pre id="terminal-seafood" class="sq-terminal"></pre>
+    
+    <div class="sq-card quiz-block" style="background: rgba(99,102,241,0.06); margin-top:0.5rem;">
+      <strong>🧩 Quick Quiz:</strong>
+      <div class="quiz-question" data-answer="c">
+        <p>1️⃣ What's the main benefit of bulk CREATE operations?</p>
+        <label><input type="radio" name="q6-bulk" value="a"> They use less memory</label><br>
+        <label><input type="radio" name="q6-bulk" value="b"> They're always faster</label><br>
+        <label><input type="radio" name="q6-bulk" value="c"> They reduce network requests</label>
+      </div>
+      <button class="sq-btn sq-run" onclick="submitQuiz(this)">Submit Answer</button>
+      <div class="quiz-feedback small" style="margin-top:0.5rem;"></div>
     </div>
   </div>
 </details>
 
 <script>
-window.runUnitTest = async function() {
-  clearTerm('terminal-test');
-  const payload = {
-    name: "Acai Bowl",
-    category: "Breakfast",
-    calories: 450,
-    ingredients: [{ name: "acai", qty: "1", unit: "bowl" }],
-    city: "sd"
-  };
-  const res = await MockAPIInstance.postDish(payload);
-  if (res.status === 201 && res.body && res.body.name === payload.name) {
-    logTo('terminal-test', '✅ Unit Test Passed: POST returned 201 and resource created');
-    logTo('terminal-test', JSON.stringify(res.body, null, 2));
-  } else {
-    logTo('terminal-test', '❌ Unit Test Failed', JSON.stringify(res, null, 2));
-  }
-};
-</script>
-
-<!-- Task 5 -->
-<details>
-  <summary>Task 5: Seed Pantry (Bulk POST)</summary>
-  <div class="sq-card">
-    <div class="sq-label">Seed the San Diego pantry with at least three dishes (Fish Tacos, California Burrito, Baja Bowl)</div>
-    <div style="display:flex; gap:0.5rem;">
-      <button class="sq-btn sq-run" onclick="seedPantry()">Seed Pantry</button>
-      <button class="sq-btn" onclick="clearTerm('terminal-seed')">Clear</button>
-    </div>
-    <pre id="terminal-seed" class="sq-terminal" style="margin-top:0.5rem"></pre>
-  </div>
-</details>
-
-<script>
-window.seedPantry = async function() {
-  clearTerm('terminal-seed');
-  const seed = [
-    { name: "Fish Tacos (Baja-style)", category: "Seafood", calories: 420, ingredients: [{name:"fish", qty:"2", unit:"tacos"}], city:'sd' },
-    { name: "California Burrito", category: "Mexican Fusion", calories: 800, ingredients: [{name:"potatoes", qty:"1", unit:"cup"}], city:'sd' },
-    { name: "Baja Bowl", category: "Healthy Bowl", calories: 390, ingredients: [{name:"rice", qty:"1", unit:"cup"}], city:'sd' },
+window.createBajaSeafoodCollection = async function() {
+  clearTerm('terminal-seafood');
+  
+  const seafoodCollection = [
+    {
+      name: "Baja Fish & Chips",
+      category: "Seafood",
+      calories: 650,
+      ingredients: [
+        { name: "beer-battered fish", qty: "1", unit: "fillet" },
+        { name: "seasoned fries", qty: "1", unit: "serving" },
+        { name: "tartar sauce", qty: "2", unit: "tbsp" }
+      ],
+      city: 'sd'
+    },
+    {
+      name: "Grilled Mahi-Mahi",
+      category: "Seafood",
+      calories: 320,
+      ingredients: [
+        { name: "mahi-mahi", qty: "6", unit: "oz" },
+        { name: "lime", qty: "1", unit: "whole" },
+        { name: "cilantro", qty: "2", unit: "tbsp" }
+      ],
+      city: 'sd'
+    },
+    {
+      name: "Baja Shrimp Bowl",
+      category: "Seafood",
+      calories: 420,
+      ingredients: [
+        { name: "grilled shrimp", qty: "8", unit: "pieces" },
+        { name: "cilantro rice", qty: "1", unit: "cup" },
+        { name: "avocado", qty: "0.5", unit: "whole" }
+      ],
+      city: 'sd'
+    }
   ];
-  logTo('terminal-seed', '[Client] Sending bulk seed...');
-  const res = await MockAPIInstance.postBulk(seed);
+  
+  logTo('terminal-seafood', '[Client] Creating Baja seafood collection...');
+  logTo('terminal-seafood', `[Client] Sending bulk POST with ${seafoodCollection.length} dishes`);
+  
+  const res = await MockAPIInstance.postBulk(seafoodCollection);
+  
   if (res.status === 201) {
-    logTo('terminal-seed', '✅ Seed success:', res.body);
-    completeTask('seed'); // Mark task as complete
+    logTo('terminal-seafood', '[Server] 201 Created - Bulk insert successful');
+    logTo('terminal-seafood', JSON.stringify(res.body, null, 2));
+    showToast('🐟 Seafood collection created — +25 XP');
+    completeTask('seafood');
   } else {
-    logTo('terminal-seed', '❌ Seed failed', res);
+    logTo('terminal-seafood', '[Server] Bulk insert failed', res);
   }
 };
 </script>
 
-<!-- Task 6 -->
-<details>
-  <summary>Task 6: View Pantry</summary>
-  <div class="sq-card">
-    <div class="sq-label">View the San Diego pantry (GET /api/dishes?city=sd)</div>
-    <div style="display:flex; gap:0.5rem;">
-      <button class="sq-btn sq-run" onclick="viewPantry()">View Pantry</button>
-      <button class="sq-btn" onclick="clearTerm('terminal-pantry')">Clear</button>
-    </div>
-    <pre id="terminal-pantry" class="sq-terminal" style="margin-top:0.5rem"></pre>
-  </div>
-</details>
-
-<script>
-window.viewPantry = async function() {
-  clearTerm('terminal-pantry');
-  const dishes = await MockAPIInstance.getDishes({ city: 'sd' });
-  if (!dishes.length) {
-    logTo('terminal-pantry','[Server] 200 OK — No dishes found for city=sd. Try seeding.');
-    return;
-  }
-  logTo('terminal-pantry','[Server] 200 OK — Dishes for city=sd:');
-  dishes.forEach(d => logTo('terminal-pantry', JSON.stringify(d, null, 2)));
-  completeTask('view'); // Mark task as complete
-};
-</script>
-
----
 ---
 
-## 🎉 Module Complete — San Diego
+## 🎉 Module Complete — San Diego CREATE Mastery
 
-Congratulations! You've successfully completed **CRUD: CREATE** in San Diego. All tasks — Fish Tacos, California Burrito, Baja Bowl, and the interactive pantry — are done. ✅  
+Congratulations! You've mastered **CREATE operations** through San Diego's finest foods:
+- 🌮 **Fish Tacos**: Class creation with validation
+- 🌯 **California Burrito**: Complex object construction  
+- 🍟 **Carne Asada Fries**: Method-based data validation
+- 🍇 **Acai Bowls**: Health scoring algorithms
+- 🥗 **Baja Bowl**: API form submission
+- 🐟 **Baja Seafood**: Bulk creation operations
 
-Your **Baja Bowl** creation earned you **+50 XP** and the **"First Insert"** badge! 🏆  
-
-The next city awaits: **Los Angeles — READ module unlocked!** 🌆  
-Click through to begin exploring **searching, filtering, and viewing dishes** in LA.
-
+**Los Angeles — READ module unlocked!** 🌆 Continue to learn querying and data retrieval!
 
 <script>
 /* utilities used by editors */
@@ -903,4 +1180,216 @@ function clearTerm(id) { const el = document.getElementById(id); if (el) el.text
     }
   }
 })();
-</script>f
+
+function submitQuiz(btn) {
+  const block = btn.closest('.quiz-block');
+  const questions = block.querySelectorAll('.quiz-question');
+  let correct = 0;
+  const total = questions.length;
+
+  questions.forEach(q => {
+    const expected = q.dataset.answer.trim().toLowerCase();
+    let userAnswer = '';
+
+    const radios = q.querySelectorAll('input[type="radio"]');
+    const text = q.querySelector('input[type="text"]');
+
+    // Find the user's choice
+    if (radios.length) {
+      const selected = [...radios].find(r => r.checked);
+      if (selected) userAnswer = selected.value.trim().toLowerCase();
+    } else if (text) {
+      userAnswer = text.value.trim().toLowerCase();
+    }
+
+    // Remove old highlights
+    q.style.borderLeft = '';
+    q.style.paddingLeft = '';
+
+    // Compare answers
+    if (userAnswer === expected) {
+      correct++;
+      q.style.borderLeft = '4px solid #10b981'; // green
+      q.style.paddingLeft = '0.5rem';
+    } else {
+      q.style.borderLeft = '4px solid #ef4444'; // red
+      q.style.paddingLeft = '0.5rem';
+    }
+  });
+
+  // Show overall feedback
+  const feedback = block.querySelector('.quiz-feedback');
+  if (correct === total) {
+    feedback.innerHTML = `✅ Perfect! ${correct}/${total} correct.`;
+    feedback.style.color = '#10b981';
+  } else {
+    feedback.innerHTML = `❌ ${correct}/${total} correct — check the red ones and try again.`;
+    feedback.style.color = '#ef4444';
+  }
+}
+
+// Task completion tracking
+window.taskProgress = {
+  fishtacos: false,
+  burrito: false,
+  fries: false,
+  acai: false,
+  bajabowl: false,
+  seafood: false
+};
+
+// Load progress from localStorage
+function loadTaskProgress() {
+  const saved = localStorage.getItem('sd_task_progress');
+  if (saved) {
+    try {
+      window.taskProgress = { ...window.taskProgress, ...JSON.parse(saved) };
+    } catch (e) {
+      console.error('Error loading task progress:', e);
+    }
+  }
+  updateProgressDisplay();
+}
+
+// Save progress to localStorage
+function saveTaskProgress() {
+  try {
+    localStorage.setItem('sd_task_progress', JSON.stringify(window.taskProgress));
+  } catch (e) {
+    console.error('Error saving task progress:', e);
+  }
+}
+
+// Mark task as complete
+window.completeTask = function(taskName) {
+  if (!window.taskProgress[taskName]) {
+    window.taskProgress[taskName] = true;
+    saveTaskProgress();
+    updateProgressDisplay();
+    checkModuleCompletion();
+  }
+};
+
+// Update progress display
+function updateProgressDisplay() {
+  const tasks = ['fishtacos', 'burrito', 'fries', 'acai', 'bajabowl', 'seafood'];
+  let completedCount = 0;
+
+  tasks.forEach(task => {
+    const element = document.getElementById(`task-${task}`);
+    if (element) {
+      const statusSpan = element.querySelector('.status');
+      if (window.taskProgress[task]) {
+        statusSpan.textContent = 'Complete ✅';
+        statusSpan.className = 'status task-complete';
+        completedCount++;
+      } else {
+        statusSpan.textContent = 'Incomplete';
+        statusSpan.className = 'status';
+      }
+    }
+  });
+
+  // Update progress bar
+  const percentage = Math.round((completedCount / tasks.length) * 100);
+  const percentageElement = document.getElementById('completion-percentage');
+  const progressBar = document.getElementById('progress-bar');
+  
+  if (percentageElement) percentageElement.textContent = `${percentage}%`;
+  if (progressBar) progressBar.style.width = `${percentage}%`;
+}
+
+// Check if module is complete and unlock next city
+function checkModuleCompletion() {
+  const allTasks = Object.values(window.taskProgress);
+  const isComplete = allTasks.every(task => task === true);
+  
+  if (isComplete) {
+    const notification = document.getElementById('unlockNotification');
+    if (notification) {
+      notification.style.display = 'block';
+      setTimeout(() => notification.style.display = 'none', 4000);
+    }
+    unlockLosAngeles();
+    console.log('🎉 San Diego module completed! Los Angeles should now be unlocked.');
+  }
+}
+
+// Unlock Los Angeles
+function unlockLosAngeles() {
+  try {
+    const saved = localStorage.getItem('city_progress'); 
+    let gameProgress = saved ? JSON.parse(saved) : { 
+      unlockedCities: [0], 
+      completedCities: [], 
+      totalCitiesCompleted: 0 
+    };
+    
+    if (!gameProgress.completedCities.includes(0)) {
+      gameProgress.completedCities.push(0);
+      gameProgress.totalCitiesCompleted++;
+    }
+    if (!gameProgress.unlockedCities.includes(1)) {
+      gameProgress.unlockedCities.push(1);
+    }
+    
+    localStorage.setItem('city_progress', JSON.stringify(gameProgress));
+    console.log('✅ San Diego completed! LA unlocked. Progress:', gameProgress);
+    
+    // Try to notify parent window
+    if (window.parent && window.parent.markCityCompleted) {
+      window.parent.markCityCompleted(0);
+    }
+    
+  } catch (e) {
+    console.error('❌ SD Unlock failed:', e);
+  }
+}
+
+// Auto complete function for testing
+function autoCompleteAllTasks() {
+  document.getElementById('quickCompleteBtn').style.display = 'none';
+  
+  // Auto-fill the Baja Bowl form
+  autofillBajaBowl();
+  
+  // Run tasks in sequence
+  setTimeout(() => createBajaBowl(), 500);
+  setTimeout(() => createBajaSeafoodCollection(), 1000);
+  
+  // Mark all other tasks as complete
+  setTimeout(() => {
+    completeTask('fishtacos');
+    completeTask('burrito'); 
+    completeTask('fries');
+    completeTask('acai');
+    
+    showToast('🎉 All CREATE tasks completed! Los Angeles unlocked!', 4000);
+  }, 1500);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  loadTaskProgress();
+});
+</script>
+
+<!-- Quick Complete Button -->
+<button id="quickCompleteBtn" onclick="autoCompleteAllTasks()" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(139,92,246,0.9);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 9999;
+  transition: all 0.2s ease;
+" onmouseover="this.style.background='rgba(139,92,246,1)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(139,92,246,0.9)'; this.style.transform='translateY(0)'">
+  Complete All Tasks
+</button>
