@@ -1,6 +1,8 @@
 ---
 layout: post
+show_reading_time: false
 title: Code Runner
+description: Write, test, and run code in Python, Java, and JavaScript.
 permalink: /code
 ---
 
@@ -15,79 +17,41 @@ permalink: /code
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
 
 <style>
-  .code-runner-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-  }
 
-  .header-section {
-    text-align: center;
-    margin-bottom: 30px;
-  }
-
-  .header-section h2 {
-    font-size: 2.5em;
-    margin-bottom: 10px;
-  }
-
-  .header-section p {
-    font-size: 1.1em;
-    opacity: 0.8;
-  }
-
-  .controls-section {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-
-  .control-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .CodeMirror {
+    height: 400px;
+    font-size: 14px;
   }
 
   .control-group label {
+    color: white;
     font-weight: 600;
   }
 
-  select, button {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: 1px solid rgba(128, 128, 128, 0.3);
-    font-size: 14px;
-    cursor: pointer;
+  /* Control bar styles */
+  .control-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #222;
+    padding: 0.75rem 1rem;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .control-bar select {
+    color: #cbc4c4ff;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
   }
 
   select {
     min-width: 150px;
-  }
-
-  .btn-group {
-    display: flex;
-    gap: 10px;
-    margin-left: auto;
-  }
-
-  button {
-    transition: all 0.2s;
+    background: none
   }
 
   button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  }
-
-  .run-btn {
-    font-weight: 600;
-    padding: 10px 24px;
-  }
-
-  .secondary-btn {
-    opacity: 0.9;
   }
 
   .editor-container {
@@ -98,11 +62,6 @@ permalink: /code
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   }
 
-  .CodeMirror {
-    height: 400px;
-    font-size: 14px;
-  }
-
   .output-section {
     border: 1px solid rgba(128, 128, 128, 0.3);
     border-radius: 8px;
@@ -110,18 +69,8 @@ permalink: /code
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   }
 
-  .output-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.3);
-    font-weight: 600;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
   .output-content {
     padding: 16px;
-    font-family: 'Courier New', monospace;
     white-space: pre-wrap;
     min-height: 100px;
     max-height: 300px;
@@ -129,69 +78,48 @@ permalink: /code
   }
 
   .examples-section {
-    margin-top: 40px;
     padding: 20px;
     border-radius: 8px;
     border: 1px solid rgba(128, 128, 128, 0.3);
   }
 
-  .examples-section h3 {
-    margin-bottom: 15px;
+  /* Dark theme overrides */
+  .output-section {
+    background-color: #2e2e2e;
+    border: 1px solid #444;
   }
 
-  .example-buttons {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+  .output-content {
+    background-color: #1e1e1e;
   }
 
-  .example-btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: 1px solid rgba(128, 128, 128, 0.3);
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 13px;
+  .examples-section {
+    background-color: #2e2e2e;
+    border: 1px solid #444;
   }
 
-  .example-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  /* Help panel styles */
+  .help-panel {
+    background: #222;
+    padding: 1rem;
+    border-radius: 0 0 10px 10px;
+    display: none;
   }
 
-  .info-section {
-    margin-top: 20px;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid rgba(128, 128, 128, 0.3);
-    font-size: 14px;
+  .help-panel strong {
+    display: block;
+    margin-bottom: 0.5rem;
   }
 
-  .info-section h4 {
-    margin-bottom: 8px;
-  }
-
-  .info-section ul {
-    margin-left: 20px;
-  }
-
-  .stats {
-    display: flex;
-    gap: 20px;
-    margin-top: 10px;
-    font-size: 13px;
-    opacity: 0.8;
+  .help-panel ul {
+    margin-top: 0.5rem;
+    margin-left: 1.2rem;
   }
 
   @media (max-width: 768px) {
     .controls-section {
       flex-direction: column;
       align-items: stretch;
-    }
-
-    .btn-group {
-      margin-left: 0;
-      width: 100%;
     }
 
     .example-buttons {
@@ -201,69 +129,49 @@ permalink: /code
 </style>
 
 <div class="code-runner-container">
-  <div class="header-section">
-    <h2>Code Runner</h2>
-    <p>Write, test, and run code in Python, Java, and JavaScript</p>
-  </div>
-
-  <div class="controls-section">
-    <div class="control-group">
-      <label for="language">Language:</label>
+  <div class="editor-container">
+    <div class="control-bar">
+      <button id="runBtn" title="Run">▶</button>
       <select id="language">
         <option value="python">Python</option>
         <option value="java">Java</option>
         <option value="javascript">JavaScript</option>
       </select>
-    </div>
-
-    <div class="control-group">
-      <label for="fontSize">Font Size:</label>
       <select id="fontSize">
-        <option value="12">12px</option>
-        <option value="14" selected>14px</option>
+        <option value="14">14px</option>
         <option value="16">16px</option>
         <option value="18">18px</option>
+        <option value="20">20px</option>
       </select>
+      <button id="copyBtn" title="Copy Code">⎘</button>
+      <button id="clearBtn" title="Clear Code">⎚</button>
+      <button id="helpBtn" title="Help">?</button>
     </div>
-
-    <div class="btn-group">
-      <button id="clearBtn" class="secondary-btn">🗑️ Clear</button>
-      <button id="copyBtn" class="secondary-btn">📋 Copy Code</button>
-      <button id="runBtn" class="run-btn large primary">▶ Run Code</button>
+    <div id="help-panel" class="help-panel">
+      <strong>Tips & Shortcuts:</strong>
+      <ul>
+        <li>Use dropdowns to change language and text size</li>
+        <li>Click buttons to fill editor with a code sample</li>
+      </ul>
+      <div class="examples-section">
+        <div id="exampleButtons" class="example-buttons"></div>
+      </div>
     </div>
-  </div>
-
-  <div class="editor-container">
-    <textarea id="editor">print("Hello, world!")</textarea>
-  </div>
-
-  <div class="output-section">
-    <div class="output-header">
-      <span>Output</span>
-      <button id="copyOutputBtn" style="padding: 4px 12px; font-size: 12px;">Copy Output</button>
+    <textarea id="editor"></textarea>
+    <div class="control-bar">
+      <span id="lineCount">Lines: 1</span>
+      <span id="charCount">Characters: 22</span>
     </div>
-    <div class="output-content" id="output">Click "Run Code" to see output here...</div>
-  </div>
-
-  <div class="stats" id="stats">
-    <span id="lineCount">Lines: 1</span>
-    <span id="charCount">Characters: 22</span>
-    <span id="execTime"></span>
-  </div>
-
-  <div class="examples-section">
-    <h3>Test Examples</h3>
-    <div class="example-buttons" id="exampleButtons"></div>
-  </div>
-
-  <div class="info-section">
-    <h4>Tips & Shortcuts</h4>
-    <ul>
-      <li><strong>Run Code:</strong> Click the Run button or press Ctrl+Enter (Cmd+Enter on Mac)</li>
-      <li><strong>Clear Editor:</strong> Quickly clear all code to start fresh</li>
-      <li><strong>Copy Code:</strong> Copy your code to clipboard with one click</li>
-      <li><strong>Test Examples:</strong> Load pre-made examples to test compiler features</li>
-    </ul>
+    <div class="output-section">
+      <div class="control-bar">
+        <span>Output</span>
+        <button id="copyOutputIcon" title="Copy Output">⎘</button>
+      </div>
+      <div class="output-content" id="output">Click "Run Code" to see output here...</div>
+    </div>
+    <div class="control-bar">
+      <span id="execTime"></span>
+    </div>
   </div>
 </div>
 
@@ -364,10 +272,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const langSelect = document.getElementById("language");
   const fontSizeSelect = document.getElementById("fontSize");
   const outputDiv = document.getElementById("output");
-  const exampleButtonsDiv = document.getElementById("exampleButtons");
   const lineCountSpan = document.getElementById("lineCount");
   const charCountSpan = document.getElementById("charCount");
   const execTimeSpan = document.getElementById("execTime");
+  const helpBtn = document.getElementById("helpBtn");
+  const helpPanel = document.getElementById("help-panel");
+
+  // Help button toggle
+  // Ensure help panel is hidden initially
+  helpPanel.style.display = "none";
+  helpBtn.addEventListener("click", () => {
+    if (helpPanel.style.display === "none" || !helpPanel.style.display) {
+      helpPanel.style.display = "block";
+    } else {
+      helpPanel.style.display = "none";
+    }
+  });
 
   // Update stats
   function updateStats() {
@@ -377,7 +297,6 @@ document.addEventListener("DOMContentLoaded", () => {
     lineCountSpan.textContent = `Lines: ${lines}`;
     charCountSpan.textContent = `Characters: ${chars}`;
   }
-
   editor.on('change', updateStats);
 
   // Font size changer
@@ -388,20 +307,23 @@ document.addEventListener("DOMContentLoaded", () => {
     editor.refresh();
   });
 
-  // Load examples for current language
+  // Sample Selector logic (inside Help panel)
   function loadExamples(lang) {
+    const exampleButtonsDiv = document.getElementById("exampleButtons");
+    if (!exampleButtonsDiv) return;
     exampleButtonsDiv.innerHTML = '';
-    examples[lang].forEach((example, index) => {
-      const btn = document.createElement('button');
-      btn.className = 'example-btn';
-      btn.textContent = example.name;
-      btn.onclick = () => {
-        editor.setValue(example.code);
-        outputDiv.textContent = 'Click "Run Code" to see output here...';
-        execTimeSpan.textContent = '';
-      };
-      exampleButtonsDiv.appendChild(btn);
-    });
+    if (examples[lang]) {
+      examples[lang].forEach((example, index) => {
+        const btn = document.createElement('button');
+        btn.className= "small"
+        btn.textContent = example.name;
+        btn.onclick = () => {
+          editor.setValue(example.code);
+          updateStats();
+        };
+        exampleButtonsDiv.appendChild(btn);
+      });
+    }
   }
 
   // Language switcher
@@ -440,16 +362,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // Copy output button
-  document.getElementById("copyOutputBtn").onclick = () => {
+  // Copy output icon
+  document.getElementById("copyOutputIcon").onclick = () => {
     const output = outputDiv.textContent;
+    const icon = document.getElementById("copyOutputIcon");
+    const original = icon.textContent;
     navigator.clipboard.writeText(output).then(() => {
-      const btn = document.getElementById("copyOutputBtn");
-      const originalText = btn.textContent;
-      btn.textContent = 'Copied!';
+      icon.textContent = '✔';
       setTimeout(() => {
-        btn.textContent = originalText;
-      }, 1500);
+        icon.textContent = original;
+      }, 1200);
     });
   };
 
@@ -469,7 +391,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const body = JSON.stringify({ code });
     const options = { ...fetchOptions, method: "POST", body };
-    
+
     fetch(runURL, options)
       .then(res => res.json())
       .then(result => {

@@ -15,17 +15,23 @@ breadcrumbs: True
 
 The following commands are universal for all machine types, terminals, and projects. The previous installation steps ensured that all machine types have compatible tools. Follow these steps in order:
 
-### Open a Linux-supported Terminal (Ubuntu, Kali, MacOS).
+### Open a Linux-supported Terminal
 
-### Setup a directory for projects
+You are using Ubuntu, Kali, MacOS in this step.
 
-Change **opencs and open-coding-society/student.git** to match the name of your organization and repo.
+### Clone repository
+
+Use same repo that you modified in vscode.dev.
+
+Change the commands below to use your own organization name (**not** "opencs" of "jm1021").  This is your personal template repository (**not** "open-coding-society/student.git").
+
+For example, if your GitHub organization is **jm1021** and your repo is ****student**, use:
 
    ```bash
-   cd # move to your home directory
-   mkdir -p opencs # use your organization, not opencs
-   cd opencs # user your oganization, noot opencs
-   git clone https://github.com/open-coding-society/student.git # clone from your organization, not open-code-society
+   cd                # move to your home directory
+   mkdir -p jm1021   # use your organization name here
+   cd jm1021         # use your organization name here
+   git clone https://github.com/jm1021/student.git   # use your organization/repo here
    ```
 
 ### Prepare project prior to opening VS Code

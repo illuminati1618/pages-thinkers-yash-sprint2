@@ -1,11 +1,11 @@
 ---
-title: Fetch of Backend Jokes
+title: Fetch of Flask Backend Jokes
 layout: post
-description: An introductory example of Frontend talking to Backend Java application serving jokes.  
-permalink: /java/spring/jokes
-menu: nav/java_spring.html
+description: An introductory example of Frontend talking to Backend Python Flask application serving jokes.  
+permalink: /python/flask/api/jokes
 image: /images/jokes.png
-tags: [javascript]
+breadcrumb: true
+show_reading_time: false
 ---
 
 <!-- HTML table fragment for page -->
@@ -33,15 +33,15 @@ tags: [javascript]
   const BOOHOO = "boohoo";
 
   // prepare fetch urls
-  // const url = `${pythonURI}/api/jokes`;
-  const url = `${javaURI}/api/jokes`;
+  const url = `${pythonURI}/api/jokes`;
+  //const url = `${javaURI}/api/jokes`;
   const getURL = url +"/";
   const likeURL = url + "/like/";  // haha reaction
   const jeerURL = url + "/jeer/";  // boohoo reaction
 
   // prepare fetch PUT options, clones with JS Spread Operator (...)
-  const postOptions = {...fetchOptions,
-    method: 'POST',
+  const reactOptions = {...fetchOptions,
+    method: 'PUT',
   }; // clones and replaces method
 
   // fetch the API
@@ -105,7 +105,7 @@ tags: [javascript]
   function reaction(type, postURL, elemID) {
 
     // fetch the API
-    fetch(postURL, postOptions)
+    fetch(postURL, reactOptions)
     // response is a RESTful "promise" on any successful fetch
     .then(response => {
       // check for response errors
